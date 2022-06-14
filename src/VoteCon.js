@@ -3,10 +3,14 @@ import { useEffect, useState } from "react";
 import {
   VoteContract,
   getChairperson,
+  getLock,
   connectWallet,
   giveValidateID,
   validete,
   vote,
+  setLock,
+  getValidateCode,
+  getWinnerName,
   candidateNames
 } from "./util/interact.js";
 
@@ -15,13 +19,15 @@ import {
 const VoteCon = () => {
   //state variables
   const [chairpersonAddress, setChairpersonAddress] = useState("");
+  const [localLock, setlocalLock] = useState(false);
   const [walletAddress, setWallet] = useState("");
   const [status, setStatus] = useState("");
   // const [message, setMessage] = useState("No connection to the network.");
   const [voteIndex, setVote] = useState(0);
   const [isVoted, setIsVoted] = useState(false);
   const [voteWeight, setWeight] = useState(0);
-  const [savedId, setId] = useState("");
+  const [savedId, setId] = useState("123");
+  const [winnerName, setWinner] = useState("");
 
   //called only once
   useEffect(() => {
@@ -29,10 +35,13 @@ const VoteCon = () => {
       const personAddress = await getChairperson().catch(err => {
         console.log('getChairperson: ', err);
       });
+      const lock = await getLock()
       setChairpersonAddress(personAddress);
+      setlocalLock(lock);
     }
     fetchChairPerson();
     addContractListener();
+    addWalletListener();
   }, []);
 
   // function addSmartContractListener() {
@@ -48,6 +57,14 @@ const VoteCon = () => {
         console.log('SendMessage event data: ', data);
       }
     });
+  }
+
+  function addWalletListener() {
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", (accounts) => {
+        window.location.reload(true);
+      });
+    }
   }
 
   const connectWalletPressed = async () => {
@@ -68,11 +85,11 @@ const VoteCon = () => {
   const onClickVote = async () => {
     const choose = window.prompt('請輸入想投的候選人代號： \r\n' + candidateNames.map((name, idx) => `${idx} => ${name}`).join('\r\n'));
     if (choose >= 0) {
-      const voteRes = await vote(choose).catch(err => {
+      const voteRes = await vote(choose, walletAddress).catch(err => {
         console.log('vote err: ', err);
       });
       console.log('voteRes: ', voteRes);
-      if (voteRes) {
+      if (voteRes && voteRes.txHash) {
         setIsVoted(true);
         setVote(choose);
       }
@@ -83,8 +100,10 @@ const VoteCon = () => {
     const idnum = window.prompt('請輸入身分證字號: '); // 應加身分證檢查算法
     const phonenum = window.prompt('請輸入手機號: ');
     if (idnum && phonenum) {
-      if (await giveValidateID(phonenum, idnum)) {
+      const res = await giveValidateID(phonenum, idnum, walletAddress).catch(err => console.log(err));
+      if (res && res.txHash) {
         setId(idnum);
+        setStatus(res.status);
         window.alert('請從手機接收驗證碼驗證. ');
       }
     }
@@ -92,8 +111,46 @@ const VoteCon = () => {
 
   const onClickSendCode = async () => {
     const code = window.prompt('請輸入驗證碼: ');
-    if (code && await validete(savedId, code)) {
-      setWeight(1);
+    if (code) {
+      const res = await validete(savedId, parseInt(code), walletAddress);
+      if (res && res.txHash) {
+        setWeight(1);
+        setStatus(res.status);
+      } else {
+        window.alert('驗證碼錯誤');
+      }
+    }
+  }
+
+  const onClickSetLock = async () => {
+    const res = await setLock(true, walletAddress);
+    if (res && res.txHash) {
+      // setWinner(candidateNames[1]);
+      setlocalLock(true);
+    }
+  }
+
+  const onClickOpenLock = async () => {
+    const res = await setLock(false, walletAddress);
+    if (res && res.txHash) {
+      setWinner('');
+      setlocalLock(false);
+    }
+  }
+
+  const onClickGetValidation = async () => {
+    const idnum = window.prompt('輸入身分證: ');
+    const code = await getValidateCode(idnum, walletAddress);
+    if (code) {
+      window.alert('此身分證的驗證碼為： ', code);
+    }
+  }
+
+  const onClickGetWinner = async () => {
+    const winnerData = await getWinnerName(walletAddress);
+    console.log('winnerData: ', winnerData);
+    if (winnerData) {
+      setWinner(winnerData);
     }
   }
 
@@ -155,7 +212,24 @@ const VoteCon = () => {
       {chairpersonAddress.length > 0 && chairpersonAddress.toLowerCase() === walletAddress ?
         <div stlye="border-top: 2px solid #333;">
           <h2>發起人功能:</h2>
-          <p><button>關閉投票</button></p>
+          {winnerName && winnerName.length > 0 ?
+            <p>最高票者為： {winnerName}</p>
+            :
+            <div>
+              {localLock == true ?
+                <p>
+                  <button onClick={onClickOpenLock}>打開投票</button>
+                  <button onClick={onClickGetWinner}>顯示最高票者</button>
+                </p>
+                :
+                <p>
+                  <button>給投票權</button>
+                  <button onClick={onClickGetValidation}>取得驗證碼</button>
+                  <button onClick={onClickSetLock}>關閉投票</button>
+                </p>
+              }
+            </div>
+          }
         </div>
         :
         <div></div>

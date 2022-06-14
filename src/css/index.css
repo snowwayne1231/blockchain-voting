@@ -69,6 +69,7 @@ button {
   cursor:pointer;
   min-width: 160px;
   font-family: Rubik, sans-serif;
+  margin-right: 6px;
 }
 
 #logo {

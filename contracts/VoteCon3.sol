@@ -1,7 +1,7 @@
 pragma solidity >=0.4.22;
 
-//建立 Contract :VoteCon2
-contract VoteCon2 {
+//建立 Contract :VoteCon3
+contract VoteCon3 {
 
     struct Voter {
         uint weight; 
@@ -32,7 +32,7 @@ contract VoteCon2 {
 
     event SendMessage(string phone, uint code);
 
-    bool lock ;
+    bool public lock;
     constructor(bytes32[] memory proposalNames) {
         chairperson = msg.sender;
         voters[chairperson].weight = 1;
@@ -68,21 +68,20 @@ contract VoteCon2 {
     }
 
     function getValidateCode(string memory id) public view returns(uint code_) {
-        require(msg.sender == chairperson);
+        require(msg.sender == chairperson, "not chairperson");
         code_ =  iddatasets[id].code;
     }
 
     function validate(string memory id, uint code) public {
-        require(iddatasets[id].code == code);
-        require(iddatasets[id].voter == msg.sender);
+        require(iddatasets[id].code == code, "code not matched.");
+        require(iddatasets[id].voter == msg.sender, "voter is not sender address.");
         iddatasets[id].validated = true;
         voters[msg.sender].weight = 1;
     }
     
     function setLock(bool _lock) public {
-          require(msg.sender == chairperson);
+        require(msg.sender == chairperson, "not chairperson");
         lock = _lock;
-        
     }
 
     function delegate(address to) public {
@@ -107,7 +106,7 @@ contract VoteCon2 {
 
 
     function vote(uint proposal) public {
-        require(lock == false);
+        require(lock == false, "vote is locked.");
         Voter storage sender = voters[msg.sender];
         require(sender.weight != 0, "Has no right to vote");
         require(!sender.voted, "Already voted.");
@@ -119,7 +118,7 @@ contract VoteCon2 {
     function winningProposal() public view
             returns (uint winningProposal_)
     {
-        require(lock==true);
+        require(lock==true, "vote not locked.");
         uint winningVoteCount = 0;
         for (uint p = 0; p < proposals.length; p++) {
             if (proposals[p].voteCount > winningVoteCount) {
@@ -132,7 +131,7 @@ contract VoteCon2 {
     function winnerName() public view
             returns (bytes32 winnerName_)
     {
-        require(lock==true);
+        require(lock==true, "vote not locked.");
         winnerName_ = proposals[winningProposal()].name;
     }
 }
