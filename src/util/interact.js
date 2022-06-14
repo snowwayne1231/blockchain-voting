@@ -4,7 +4,8 @@ const { createAlchemyWeb3 } = require("@alch/alchemy-web3");
 const web3 = createAlchemyWeb3(alchemyKey);
 
 const contractABI = require("../contract-abi.json");
-const contractAddress = "0x4CE7b8d01108a1a00A0ab4d36f39caFdE89e0Eb7";
+const contractAddress = "0x9B86091A62271425A6E95eDCeD9F50a4b2F30E00";
+export const candidateNames = ['CandidateA', 'CandidateBB', 'Candidate3'];
 
 export const VoteContract = new web3.eth.Contract(
     contractABI,
@@ -34,6 +35,7 @@ export const connectWallet = async () => {
             return {
                 address: "",
                 status: "😥 " + err.message,
+                voter: {},
             };
         }
     } else {
@@ -50,11 +52,12 @@ export const connectWallet = async () => {
                 </p>
                 </span>
             ),
+            voter: {},
         };
     }
 };
 
-export const getCurrentWalletConnected = async () => { 
+export const getCurrentWalletConnected = async () => {
 
 };
 
@@ -64,6 +67,29 @@ export const getMyVoter = async (address) => {
 };
 
 
-export const updateMessage = async (message) => {
-
+export const giveValidateID = async (phonenum, idnum) => {
+    console.log('giveValidateID: ', phonenum, idnum);
+    await VoteContract.methods.giveValidateId(phonenum, idnum).call();
+    return true;
 };
+
+export const validete = async (idnum, code) => {
+    await VoteContract.methods.validate(idnum, code);
+    return true;
+}
+
+export const vote = async (idx) => {
+    const unit = parseInt(idx, 10);
+    if (unit >= 0 && candidateNames[unit]) {
+        await VoteContract.methods.vote(unit);
+        return true;
+    } else {
+        console.log('wrong idx: ', idx);
+        return false;
+    }
+    
+}
+
+export const setLock = async(bool) => {
+    await VoteContract.methods.setLock(bool);
+}

@@ -6,7 +6,7 @@ const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
  
 const contract = require("../artifacts/contracts/VoteCon.sol/VoteCon.json");
 // console.log(JSON.stringify(contract.abi));
-const candidateNames = ['CandidateA', 'CandidateBB', 'CandidateCCC'];
+const candidateNames = ['CandidateA', 'CandidateBB', 'Candidate3'];
 
 // Provider
 const alchemyProvider = new ethers.providers.AlchemyProvider(network="rinkeby", API_KEY);
